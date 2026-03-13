@@ -6,11 +6,10 @@ export const SolicitudesService = {
     return response.data;
   },
   AdminDeny: async (id, mensaje) => {
-    const response = await apiClient.post(`api/Solicitud/${id}/rechazar`, mensaje, {
-      headers: {
-        "Content-Type": "text/plain",
-      },
-    });
+    const response = await apiClient.post(
+      `api/Solicitud/${id}/rechazar`,
+      mensaje,
+    );
     return response.data;
   },
   AdminApprove: async (id) => {

@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import {
   Card,
   CardContent,
@@ -42,7 +41,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -113,6 +111,11 @@ export default function AdminProductsPage() {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryDescription, setNewCategoryDescription] = useState("");
+  const [isCategorySaving, setIsCategorySaving] = useState(false);
+  const [categoryError, setCategoryError] = useState("");
 
   async function loadCategories(): Promise<Categoria[]> {
     try {
@@ -333,6 +336,40 @@ export default function AdminProductsPage() {
     }
   }
 
+  async function handleCreateCategory() {
+    const trimmedName = newCategoryName.trim();
+    const trimmedDescription = newCategoryDescription.trim();
+
+    if (!trimmedName) {
+      setCategoryError("El nombre de la categoría es obligatorio");
+      return;
+    }
+
+    if (!trimmedDescription) {
+      setCategoryError("La descripción de la categoría es obligatoria");
+      return;
+    }
+
+    setIsCategorySaving(true);
+    setCategoryError("");
+
+    try {
+      await CategoriaService.create({
+        nombre: trimmedName,
+        descripcion: trimmedDescription,
+      });
+      await loadCategories();
+      setCategoryDialogOpen(false);
+      setNewCategoryName("");
+      setNewCategoryDescription("");
+    } catch (error) {
+      setCategoryError("No se pudo crear la categoría");
+      console.error("Error al crear categoría:", error);
+    } finally {
+      setIsCategorySaving(false);
+    }
+  }
+
   const inStockCount = products.filter((p) => p.inStock).length;
   const outOfStockCount = products.length - inStockCount;
 
@@ -349,6 +386,20 @@ export default function AdminProductsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => {
+              setCategoryError("");
+              setNewCategoryName("");
+              setNewCategoryDescription("");
+              setCategoryDialogOpen(true);
+            }}
+            disabled={isCategoriesLoading || isCategorySaving}
+          >
+            <Plus className="h-4 w-4" />
+            New Category
+          </Button>
           <Button variant="outline" className="gap-2" asChild>
             <Link href="/products">
               <ExternalLink className="h-4 w-4" />
@@ -741,6 +792,81 @@ export default function AdminProductsPage() {
                 : editingProduct
                   ? "Save Changes"
                   : "Add Product"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Category Dialog */}
+      <Dialog
+        open={categoryDialogOpen}
+        onOpenChange={(open) => {
+          setCategoryDialogOpen(open);
+          if (!open) {
+            setCategoryError("");
+            setNewCategoryName("");
+            setNewCategoryDescription("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">New Category</DialogTitle>
+            <DialogDescription>
+              Crea una nueva categoría para asignarla a tus productos.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {categoryError && (
+              <p className="text-sm text-destructive">{categoryError}</p>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="new-category-name" className="text-foreground">
+                Category Name
+              </Label>
+              <Input
+                id="new-category-name"
+                placeholder="Ej. Reactivos"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                disabled={isCategorySaving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="new-category-description"
+                className="text-foreground"
+              >
+                Description
+              </Label>
+              <Textarea
+                id="new-category-description"
+                placeholder="Describe la categoría"
+                rows={3}
+                className="resize-none"
+                value={newCategoryDescription}
+                onChange={(e) => setNewCategoryDescription(e.target.value)}
+                disabled={isCategorySaving}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCategoryDialogOpen(false)}
+              disabled={isCategorySaving}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateCategory}
+              disabled={
+                !newCategoryName.trim() ||
+                !newCategoryDescription.trim() ||
+                isCategorySaving
+              }
+            >
+              {isCategorySaving ? "Creando..." : "Create Category"}
             </Button>
           </DialogFooter>
         </DialogContent>

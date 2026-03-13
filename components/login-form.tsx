@@ -2,37 +2,69 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { AuthService } from "@/services/authService";
 
 export function LoginForm() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [mode, setMode] = useState<"login" | "register">("login");
+
+  function toggleMode() {
+    setMode((prev) => (prev === "login" ? "register" : "login"));
+    setErrorMessage("");
+    setSuccessMessage("");
+    setEmail("");
+    setPassword("");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMessage("");
+    setSuccessMessage("");
     setIsLoading(true);
 
     try {
-      const response = await AuthService.login({ email, password });
-      const token = response?.token || response?.jwt || response?.accessToken;
+      if (mode === "register") {
+        await AuthService.register({ email, password });
+        setSuccessMessage(
+          "Cuenta creada con éxito. Ahora puedes iniciar sesión.",
+        );
+        setMode("login");
+        setEmail("");
+        setPassword("");
+      } else {
+        const response = await AuthService.login({ email, password });
+        const token = response?.token || response?.jwt || response?.accessToken;
 
-      if (!token || typeof token !== "string") {
-        throw new Error("No se recibió un token JWT válido");
+        if (!token || typeof token !== "string") {
+          throw new Error("No se recibió un token JWT válido");
+        }
+
+        localStorage.setItem("token", token);
+        router.push("/products");
       }
-
-      localStorage.setItem("token", token);
     } catch (error) {
-      setErrorMessage("Credenciales inválidas o error de autenticación");
-      console.error("Error al iniciar sesión:", error);
+      setErrorMessage(
+        mode === "register"
+          ? "No se pudo crear la cuenta. Verifica los datos e intenta de nuevo."
+          : "Credenciales inválidas o error de autenticación",
+      );
+      console.error(
+        mode === "register"
+          ? "Error al registrarse:"
+          : "Error al iniciar sesión:",
+        error,
+      );
     } finally {
       setIsLoading(false);
     }
@@ -92,10 +124,12 @@ export function LoginForm() {
 
           <div className="space-y-2 text-center lg:text-left">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              Welcome back
+              {mode === "login" ? "Bienvenido de nuevo!" : "Crear una cuenta"}
             </h1>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Sign in to your account to continue
+              {mode === "login"
+                ? "Inicia sesión en tu cuenta para continuar"
+                : "Completa los campos para registrarte"}
             </p>
           </div>
 
@@ -129,12 +163,14 @@ export function LoginForm() {
                 >
                   Password
                 </Label>
-                <Link
-                  href="#"
-                  className="text-xs text-primary hover:text-primary/80 transition-colors"
-                >
-                  Forgot password?
-                </Link>
+                {mode === "login" && (
+                  <Link
+                    href="#"
+                    className="text-xs text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                )}
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -160,16 +196,15 @@ export function LoginForm() {
                   )}
                 </button>
               </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Checkbox id="remember" />
-              <Label
-                htmlFor="remember"
-                className="text-sm text-muted-foreground font-normal cursor-pointer"
-              >
-                Remember me for 30 days
-              </Label>
+              {mode === "register" && (
+                <ul className="mt-2 space-y-1 text-xs text-muted-foreground list-disc list-inside">
+                  <li>Mínimo 8 caracteres</li>
+                  <li>Al menos una letra mayúscula</li>
+                  <li>Al menos una letra minúscula</li>
+                  <li>Al menos un número</li>
+                  <li>Al menos un carácter especial (!@#$%...)</li>
+                </ul>
+              )}
             </div>
 
             <Button
@@ -180,46 +215,36 @@ export function LoginForm() {
               {isLoading ? (
                 <div className="flex items-center gap-2">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                  Signing in...
+                  {mode === "login" ? "Signing in..." : "Registrando..."}
                 </div>
-              ) : (
+              ) : mode === "login" ? (
                 "Sign in"
+              ) : (
+                "Registrarse"
               )}
             </Button>
 
+            {successMessage && (
+              <p className="text-sm text-green-600 dark:text-green-400">
+                {successMessage}
+              </p>
+            )}
             {errorMessage && (
               <p className="text-sm text-destructive">{errorMessage}</p>
             )}
           </form>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-background px-3 text-muted-foreground">
-                Quick access
-              </span>
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <Button variant="outline" className="w-full h-10" asChild>
-              <Link href="/products">Products</Link>
-            </Button>
-            <Button variant="outline" className="w-full h-10" asChild>
-              <Link href="/admin">Admin Panel</Link>
-            </Button>
-          </div>
-
           <p className="text-center text-xs text-muted-foreground">
-            {"Don't have an account? "}
-            <Link
-              href="#"
-              className="text-primary hover:text-primary/80 font-medium transition-colors"
+            {mode === "login"
+              ? "¿No tienes una cuenta? "
+              : "¿Ya tienes una cuenta? "}
+            <button
+              type="button"
+              onClick={toggleMode}
+              className="text-primary hover:text-primary/80 font-medium transition-colors cursor-pointer"
             >
-              Contact sales
-            </Link>
+              {mode === "login" ? "Registrarse" : "Iniciar sesión"}
+            </button>
           </p>
         </div>
       </div>

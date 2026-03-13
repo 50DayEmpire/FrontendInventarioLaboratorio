@@ -32,11 +32,6 @@ const sidebarItems = [
     href: "/admin/users",
     icon: Users,
   },
-  {
-    title: "Permissions",
-    href: "/admin/permissions",
-    icon: Shield,
-  },
 ];
 
 export function AdminSidebar() {

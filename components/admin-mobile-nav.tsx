@@ -21,7 +21,6 @@ const sidebarItems = [
   { title: "Products", href: "/admin", icon: Package },
   { title: "Solicitudes", href: "/admin/Solicitudes", icon: ClipboardList },
   { title: "Users", href: "/admin/users", icon: Users },
-  { title: "Permissions", href: "/admin/permissions", icon: Shield },
 ];
 
 export function AdminMobileNav() {
