@@ -18,6 +18,7 @@ COPY . .
 
 # Desactivar telemetría y generar el build
 ENV NEXT_TELEMETRY_DISABLED=1
+#ENV NEXT_PUBLIC_API_URL=http://45.32.231.191:5002/
 RUN yarn build
 
 # 3. Etapa de producción (Runner)
